@@ -266,18 +266,29 @@ class Surface:
             position = int(index * len(self.site_df))
             position = min(position, len(self.site_df) - 1)  # clamp to valid range
             index = self.site_df.index[position]
+            return_site_from_df = True
+
         elif index not in self.site_df.index:
             raise KeyError(f"Index {index} not found in site_df index.")
 
-        # Extract and assign site info
-        info = self.site_df.loc[index].to_dict()
-        coordinates = self.site_df.loc[index, "coordinates"]
+        elif isinstance(index, (list, tuple, np.ndarray)) and len(index) == 2:
+            info = self.get_surface_interpolated_site(index)
+            coordinates = info['coordinates']
+            return_site_from_df = False
 
+        # Extract and assign site info
+        if return_site_from_df:
+            info = self.site_df.loc[index].to_dict()
+            coordinates = self.site_df.loc[index, "coordinates"]
+        
         site_atoms.info.update(info)
         site_atoms.append(Atom("X", position=coordinates))
         del site_atoms[:-1]
 
         return site_atoms
+    
+    def get_surface_interpolated_site(self, index):
+        return
 
 
     def view_site(self, index: int, return_atoms: bool = False) -> Atoms:
