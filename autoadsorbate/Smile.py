@@ -941,15 +941,16 @@ def align_atoms_list(atoms_list):
         atoms.set_positions(rotated_coords)
 
 
-def rmsd(atoms1: Atoms, atoms2: Atoms) -> float:
+def max_drift(atoms1: Atoms, atoms2: Atoms) -> float:
     """
     Compute RMSD between two ASE Atoms objects.
     Assumes same number of atoms and same ordering.
     """
     diff = atoms1.get_positions() - atoms2.get_positions()
-    return np.sqrt((diff ** 2).sum() / len(atoms1))
+    return np.max(np.linalg.norm(diff, axis=1))
+    # return np.sqrt((diff ** 2).sum() / len(atoms1))
 
-def remove_duplicate_atoms(atoms_list, threshold: float = 1e-3):
+def remove_duplicate_atoms(atoms_list, threshold: float = 1.5):
     """
     Remove duplicates from a list of ASE Atoms objects based on RMSD.
     
@@ -964,7 +965,7 @@ def remove_duplicate_atoms(atoms_list, threshold: float = 1e-3):
     for candidate in atoms_list:
         is_duplicate = False
         for u in unique_atoms:
-            if rmsd(candidate, u) < threshold:
+            if max_drift(candidate, u) < threshold:
                 is_duplicate = True
                 break
         if not is_duplicate:

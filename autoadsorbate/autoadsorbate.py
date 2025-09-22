@@ -13,8 +13,6 @@ from .Smile import (
     _reset_position,
     _reset_rotation,
     conformers_from_smile,
-    align_atoms_list,
-    remove_duplicate_atoms
 )
 from .Surf import conformer_to_site, get_shrinkwrap_ads_sites
 from .utils import (
@@ -62,8 +60,7 @@ class Fragment:
         smile: str,
         to_initialize: int = 10,
         random_seed: int = 2104,
-        sort_conformers: bool = False,
-        remove_duplicates: bool = False
+        sort_conformers: bool = True,
     ):
         """
         Initialize attributes.
@@ -86,9 +83,6 @@ class Fragment:
         self.sort_conformers = sort_conformers
         if self.sort_conformers:
             self.conformers = get_sorted_by_snap_dist(self.conformers)
-
-        if remove_duplicates:
-            self.conformers = self.remove_duplicate_conformers()
 
     def get_conformer(
         self,
@@ -145,13 +139,6 @@ class Fragment:
             return self.conformers[0][2:].get_chemical_formula(empirical=empirical)
         else:
             return self.conformers[0].get_chemical_formula(empirical=empirical)
-        
-    def remove_duplicate_conformers(self):
-        print(f'Removing duplicate conformers, {len(self.conformers) = }')
-        align_atoms_list(self.conformers)
-        conformers = remove_duplicate_atoms(self.conformers, threshold = 1e-1)
-        print(f'{len(conformers) = }')
-        return conformers
         
     def copy(self) -> "Fragment":
         """Return a deep copy of this instance."""
