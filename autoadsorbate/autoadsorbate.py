@@ -1,6 +1,7 @@
 """Main module."""
 
 from typing import Dict, List, Literal, Union
+import copy
 
 import ase
 import numpy as np
@@ -138,6 +139,10 @@ class Fragment:
             return self.conformers[0][2:].get_chemical_formula(empirical=empirical)
         else:
             return self.conformers[0].get_chemical_formula(empirical=empirical)
+        
+    def copy(self) -> "Fragment":
+        """Return a deep copy of this instance."""
+        return copy.deepcopy(self)
 
 
 class Surface:
