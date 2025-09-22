@@ -44,23 +44,14 @@ class Intermediate:
 
 
 class Fragment:
-    """
-    Base class for initializing reaction fragments.
-
-    Attributes:
-        smile (str): The SMILES string of the fragment.
-        to_initialize (int): The number of conformers to initialize.
-        randomSeed (int): The random seed for conformer generation.
-        conformers (List[Atoms]): A list of ASE Atoms objects representing the conformers.
-        conformers_aligned (List[bool]): A list indicating whether each conformer is aligned.
-    """
+    """ Base class for initializing reaction fragments. """
 
     def __init__(
         self,
         smile: str,
         to_initialize: int = 10,
         random_seed: int = 2104,
-        sort_conformers: bool = True,
+        sort_conformers: bool = False,
         prune_rms_thresh: float = .5
     ):
         """
@@ -107,11 +98,11 @@ class Fragment:
         if isinstance(i, float):
             if not (0.0 <= i <= 1.0):
                 raise ValueError("Float index must be between 0 and 1.")
-            position = int(i * self.to_initialize)
-            position = min(position, self.to_initialize - 1)  # clamp to valid range
+            position = int(i * len(self.conformers))
+            position = min(position, len(self.conformers) - 1)  # clamp to valid range
             i = position
-        elif i > self.to_initialize:
-            raise KeyError(f"Index {i} is larger than nnumber of initialized conformers.")
+        elif i > len(self.conformers):
+            raise KeyError(f"Index {i} is larger than number of initialized conformers.")
 
 
         if not self.conformers_aligned[i]:
