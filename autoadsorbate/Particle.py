@@ -322,7 +322,7 @@ def get_shrinkwrap_particle_ads_sites(
     
     if return_geometry:
         _, faces, __ = round_cube_geometry
-        return shrinkwrap, faces
+        return shrinkwrap, faces, sites_dict
 
     
     return sites_dict

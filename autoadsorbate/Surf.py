@@ -1,6 +1,7 @@
 import itertools
 import math
 from copy import deepcopy
+from itertools import product
 
 import numpy as np
 import pandas as pd
@@ -104,7 +105,7 @@ def get_shrinkwrap_ads_sites(
         list (optional): Trajectory list if return_trj is True.
     """
 
-    grid = get_shrinkwrap_grid(
+    grid, faces = get_shrinkwrap_grid(
         atoms, precision=precision, touch_sphere_size=touch_sphere_size
     )
     surf_ind = shrinkwrap_surface(
@@ -189,7 +190,7 @@ def get_shrinkwrap_ads_sites(
         return sites_dict, trj
     
     if return_geometry:
-        return grid.positions, sites_dict
+        return grid.positions, faces, sites_dict
 
     return sites_dict
 
@@ -309,7 +310,8 @@ def get_shrinkwrap_grid(
         )
         slab = slab[raster_surf_index]
 
-    grid_positions = _get_starting_grid(slab, precision=precision).positions
+    starting_grid, faces = _get_starting_grid(slab, precision=precision)
+    grid_positions = starting_grid.positions
     large_slab = get_large_atoms(slab)
     slab_positions = large_slab.positions
 
@@ -335,7 +337,7 @@ def get_shrinkwrap_grid(
     )
     grid = grid[[atom.index for atom in grid if atom.position[2] > 0]]
 
-    return grid
+    return grid, faces
 
 
 def shrinkwrap_surface(
@@ -351,9 +353,10 @@ def shrinkwrap_surface(
     Returns:
         np.ndarray: Indices of surface atoms.
     """
-    grid_positions = get_shrinkwrap_grid(
+    grid_shrinkwrapped, _ = get_shrinkwrap_grid(
         slab, precision, touch_sphere_size=touch_sphere_size - 0.2
-    ).positions
+    )
+    grid_positions = grid_shrinkwrapped.positions
     slab_positions = slab.positions
 
     distances_to_grid = cdist(slab_positions, grid_positions).min(axis=1)
@@ -1289,57 +1292,107 @@ def _check_a_b_vectors(atoms: Atoms) -> bool:
     return check
 
 
-def _get_starting_grid(atoms: Atoms, precision: float, marker: str = "He") -> Atoms:
+def _get_starting_grid(atoms, precision: float, marker: str = "He"):
     """
-    Generates a starting grid of marker atoms above the given atoms object.
+    Generates a grid of marker atoms above the given atoms object, and returns
+    the faces (as indices) connecting the grid points in a structured XY grid.
 
     Args:
-        atoms (Atoms): The ASE Atoms object to be used as a reference.
-        precision (float): The precision for the grid spacing.
-        marker (str): The marker symbol to use for the grid atoms. Default is 'He'.
+        atoms (Atoms): ASE Atoms object to use as reference.
+        precision (float): Grid spacing in X and Y directions.
+        marker (str): Symbol for marker atoms. Default 'He'.
 
     Returns:
-        Atoms: An ASE Atoms object containing the grid of marker atoms.
+        grid (Atoms): ASE Atoms object with marker atoms.
+        faces (list of list of int): Each face is a list of 4 vertex indices (quad).
     """
+    # Determine grid ranges
     if _check_a_b_vectors(atoms):
-        range_x = np.arange(0, atoms.cell[0][0] + atoms.cell[1][0], precision)
-        if atoms.cell[1][0] < 0:
-            range_x = np.arange(
-                atoms.cell[1][0], atoms.cell[0][0] + np.abs(atoms.cell[1][0]), precision
-            )
-        range_y = np.arange(0, atoms.cell[1][1], precision)
+        x_start, x_end = min(atoms.cell[0][0], atoms.cell[1][0]), max(atoms.cell[0][0], atoms.cell[0][0] + atoms.cell[1][0])
+        y_start, y_end = 0, atoms.cell[1][1]
     else:
-        max_range_limit_a = max(
-            [
-                np.linalg.norm(atoms.cell[0] + atoms.cell[1]),
-                np.linalg.norm(atoms.cell[0] - atoms.cell[1]),
-                np.linalg.norm(-atoms.cell[0] + atoms.cell[1]),
-                np.linalg.norm(-atoms.cell[0] - atoms.cell[1]),
-            ]
-        )
+        def max_cell_range(cell):
+            return max(np.linalg.norm(v) for v in [
+                cell[0] + cell[1], cell[0] - cell[1], -cell[0] + cell[1], -cell[0] - cell[1]
+            ])
+        x_start, x_end = 0, max_cell_range(atoms.cell)
+        y_start, y_end = 0, max_cell_range(atoms.cell)
 
-        max_range_limit_b = max(
-            [
-                np.linalg.norm(atoms.cell[0] + atoms.cell[1]),
-                np.linalg.norm(atoms.cell[0] - atoms.cell[1]),
-                np.linalg.norm(-atoms.cell[0] + atoms.cell[1]),
-                np.linalg.norm(-atoms.cell[0] - atoms.cell[1]),
-            ]
-        )
+    x_coords = np.arange(x_start, x_end, precision)
+    y_coords = np.arange(y_start, y_end, precision)
+    z_coord = max(a.position[2] for a in atoms) + 3.5
 
-        range_x = np.arange(0, max_range_limit_a, precision)
-        range_y = np.arange(0, max_range_limit_b, precision)
-
+    # Create grid vertices
+    vertices = [Atom(marker, [x, y, z_coord]) for x, y in product(x_coords, y_coords)]
     grid = get_empty_atoms(atoms)
-    start_grid_z = max([a.position[2] for a in atoms]) + 3.5
+    for v in vertices:
+        grid.append(v)
 
-    for x, y in [(x, y) for x in range_x for y in range_y]:
-        grid += Atom(marker, [x, y, start_grid_z])
-        if any(grid.get_scaled_positions(wrap=False)[-1] > 1.01) or any(
-            grid.get_scaled_positions(wrap=False)[-1] < -0.01
-        ):
-            del grid[-1]
-    return grid
+    # Map vertices to 2D grid indices for face creation
+    nx, ny = len(x_coords), len(y_coords)
+    faces = []
+    for i in range(nx - 1):
+        for j in range(ny - 1):
+            # Quad face as list of 4 vertex indices
+            v0 = i * ny + j
+            v1 = (i + 1) * ny + j
+            v2 = (i + 1) * ny + (j + 1)
+            v3 = i * ny + (j + 1)
+            faces.append([v0, v1, v2, v3])
+
+    return grid, faces
+
+# def _get_starting_grid(atoms: Atoms, precision: float, marker: str = "He") -> Atoms:
+#     """
+#     Generates a starting grid of marker atoms above the given atoms object.
+
+#     Args:
+#         atoms (Atoms): The ASE Atoms object to be used as a reference.
+#         precision (float): The precision for the grid spacing.
+#         marker (str): The marker symbol to use for the grid atoms. Default is 'He'.
+
+#     Returns:
+#         Atoms: An ASE Atoms object containing the grid of marker atoms.
+#     """
+#     if _check_a_b_vectors(atoms):
+#         range_x = np.arange(0, atoms.cell[0][0] + atoms.cell[1][0], precision)
+#         if atoms.cell[1][0] < 0:
+#             range_x = np.arange(
+#                 atoms.cell[1][0], atoms.cell[0][0] + np.abs(atoms.cell[1][0]), precision
+#             )
+#         range_y = np.arange(0, atoms.cell[1][1], precision)
+#     else:
+#         max_range_limit_a = max(
+#             [
+#                 np.linalg.norm(atoms.cell[0] + atoms.cell[1]),
+#                 np.linalg.norm(atoms.cell[0] - atoms.cell[1]),
+#                 np.linalg.norm(-atoms.cell[0] + atoms.cell[1]),
+#                 np.linalg.norm(-atoms.cell[0] - atoms.cell[1]),
+#             ]
+#         )
+
+#         max_range_limit_b = max(
+#             [
+#                 np.linalg.norm(atoms.cell[0] + atoms.cell[1]),
+#                 np.linalg.norm(atoms.cell[0] - atoms.cell[1]),
+#                 np.linalg.norm(-atoms.cell[0] + atoms.cell[1]),
+#                 np.linalg.norm(-atoms.cell[0] - atoms.cell[1]),
+#             ]
+#         )
+
+#         range_x = np.arange(0, max_range_limit_a, precision)
+#         range_y = np.arange(0, max_range_limit_b, precision)
+
+#     grid = get_empty_atoms(atoms)
+#     start_grid_z = max([a.position[2] for a in atoms]) + 3.5
+
+#     for x, y in [(x, y) for x in range_x for y in range_y]:
+#         grid += Atom(marker, [x, y, start_grid_z])
+#         if any(grid.get_scaled_positions(wrap=False)[-1] > 1.01) or any(
+#             grid.get_scaled_positions(wrap=False)[-1] < -0.01
+#         ):
+#             del grid[-1]
+#     return grid
 
 
 def _drop_marker(
