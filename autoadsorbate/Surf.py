@@ -88,6 +88,7 @@ def get_shrinkwrap_ads_sites(
     precision: float = 0.5,
     touch_sphere_size: float = 3,
     return_trj: bool = False,
+    return_geometry = False
 ):
     """Identifies adsorption sites on a surface using a shrinkwrap grid.
 
@@ -96,6 +97,7 @@ def get_shrinkwrap_ads_sites(
         precision (float): Precision for the shrinkwrap grid.
         touch_sphere_size (float): Radius to consider for grid points.
         return_trj (bool): Whether to return the trajectory for demo mode.
+        return_geometry (bool): return positions of grid points
 
     Returns:
         dict: Dictionary containing site information.
@@ -185,6 +187,9 @@ def get_shrinkwrap_ads_sites(
             extended_atoms.append(Atom("H", site_coord + n_vec * m * 0.5))
         trj.append(extended_atoms)
         return sites_dict, trj
+    
+    if return_geometry:
+        return grid.positions, sites_dict
 
     return sites_dict
 

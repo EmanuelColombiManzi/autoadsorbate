@@ -177,19 +177,21 @@ class Surface:
             self.site_df = pd.DataFrame(self.site_dict)
             
         elif self.mode == 'slab':
-            self.site_dict = get_shrinkwrap_ads_sites(
+            self.grid, self.site_dict = get_shrinkwrap_ads_sites(
                 atoms=self.atoms,
                 precision=self.precision,
                 touch_sphere_size=self.touch_sphere_size,
+                return_geometry=True
             )
             self.site_df = pd.DataFrame(self.site_dict)
             self.sort_site_df()
             
         elif self.mode == 'particle':
-            self.site_dict = get_shrinkwrap_particle_ads_sites(
+            self.grid, self.site_dict = get_shrinkwrap_particle_ads_sites(
                 particle_atoms=self.atoms,
                 precision=self.precision,
                 touch_sphere_size=self.touch_sphere_size,
+                return_geometry = True
             )
             self.site_df = pd.DataFrame(self.site_dict)
             self.sort_site_df()
