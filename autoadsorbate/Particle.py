@@ -307,8 +307,10 @@ def get_shrinkwrap_particle_ads_sites(
     elif grid_mode == 'round_cube':
         round_cube_geometry = grid_round_cube(center=center, radius=grid_radius, d_min=precision)
         grid = round_cube_geometry[0]
+    elif isinstance(grid_mode, np.ndarray):
+        grid = grid_mode
     else:
-        raise ValueError('grid_mode supported: fibonacci, grid')
+        raise ValueError('grid_mode supported: fibonacci, grid; alternatively provide your own geometry')
 
     shrinkwrap = move_sphere_points_toward_center(
         sphere_points = grid,
