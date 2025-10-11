@@ -1,5 +1,6 @@
 import numpy as np
 from ase import Atoms
+from typing import Union, Literal
 
 def subdivisions_for_min_edge_length(d_min, radius=1.0):
     return max(int(np.floor(2 * radius / d_min)), 1)
@@ -272,16 +273,16 @@ def calculate_sites(inds, particle_atoms, shrinkwrap, threshold=2.7):
 
 def get_shrinkwrap_particle_ads_sites(
     particle_atoms: Atoms,
-    grid_mode = 'fibonacci',
+    grid_mode: Union[Literal['fibonacci', 'grid'], np.array],
     precision: float = 1.,
     touch_sphere_size: float = 3.,
-    return_geometry = False
+    return_geometry = False,
 ):
     """Identifies adsorption sites on a surface using a shrinkwrap grid.
 
     Args:
         particle_atoms (Atoms): Atoms slab.
-        grid_mode (str): 'fibonacci' or 'grid'
+        grid_mode (str or numpy array): 'fibonacci' or 'grid'; grid points can be set explicitly by providing a numpy array
         precision (float): Precision for the shrinkwrap grid.
         touch_sphere_size (float): Radius to consider for grid points.
         return_trj (bool): Whether to return the trajectory for demo mode.
