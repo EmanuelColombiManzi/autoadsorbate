@@ -273,7 +273,7 @@ def calculate_sites(inds, particle_atoms, shrinkwrap, threshold=2.7):
 
 def get_shrinkwrap_particle_ads_sites(
     particle_atoms: Atoms,
-    grid_mode: Union[Literal['fibonacci', 'grid'], np.ndarray],
+    grid_mode: Union[Literal['fibonacci', 'grid'], list],
     precision: float = 1.,
     touch_sphere_size: float = 3.,
     return_geometry = False,
@@ -302,13 +302,14 @@ def get_shrinkwrap_particle_ads_sites(
     
     grid_radius = particle_radius + touch_sphere_size + 0.5 # 0.5 is safety buffer
     
-    if grid_mode == 'fibonacci':
+    if isinstance(grid_mode, list):
+        round_cube_geometry = grid_mode
+        grid = round_cube_geometry[0]
+    elif grid_mode == 'fibonacci':
         grid = fibonacci_sphere(center=center, radius=grid_radius, point_distance=precision)[0]
     elif grid_mode == 'round_cube':
         round_cube_geometry = grid_round_cube(center=center, radius=grid_radius, d_min=precision)
         grid = round_cube_geometry[0]
-    elif isinstance(grid_mode, np.ndarray):
-        grid = grid_mode
     else:
         raise ValueError('grid_mode supported: fibonacci, grid; alternatively provide your own geometry')
 

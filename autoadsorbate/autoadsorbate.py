@@ -156,6 +156,7 @@ class Surface:
         precision: float = 0.25,
         touch_sphere_size: float = 3,
         mode: Literal['slab', 'particle', 'dummy'] = 'slab',
+        grid_mode: Union[Literal['fibonacci', 'round_cube'], list] = None
     ):
         """
         Initialize attributes.
@@ -164,39 +165,46 @@ class Surface:
             atoms (Atoms): The ASE Atoms object representing the surface.
             precision (float, optional): The precision for the grid spacing. Defaults to 0.25.
             touch_sphere_size (float, optional): The size of the touch sphere. Defaults to 3.
+            grid_mode: Union[Literal['fibonacci', 'round_cube'], np.ndarray] provides options for grid geometry used to initialize shrinkwrap. If array, should contain, verts, faces, normals. Like output of "round_cube_geometry"
         """
         self.mode = mode
         self.atoms = atoms
         self.precision = precision
         self.touch_sphere_size = touch_sphere_size
+        self.grid_mode = grid_mode
+        
+        self.grid, self.faces, self.site_dict = self._shrikwrap(self.atoms)
+        self.site_df = pd.DataFrame(self.site_dict)
+        self.sort_site_df()
+
+        self.sites_atoms = Atoms(['He' for _ in self.site_df.index.values],  [ v for v in self.site_df.coordinates.values])
+        self.surf_inds = list(set([i for t in list(self.site_df.topology.values) for i in t]))
+
+    def _shrikwrap(self, atoms):
         
         if self.mode == 'dummy':
-            self.site_dict = {}
-            self.site_df = pd.DataFrame(self.site_dict)
+            grid, faces, site_dict = [], [], {}
             
         elif self.mode == 'slab':
-            self.grid, self.faces, self.site_dict = get_shrinkwrap_ads_sites(
-                atoms=self.atoms,
+            grid, faces, site_dict = get_shrinkwrap_ads_sites(
+                atoms=atoms,
                 precision=self.precision,
                 touch_sphere_size=self.touch_sphere_size,
                 return_geometry=True
             )
-            self.site_df = pd.DataFrame(self.site_dict)
-            self.sort_site_df()
             
         elif self.mode == 'particle':
-            self.grid, self.faces, self.site_dict = get_shrinkwrap_particle_ads_sites(
-                particle_atoms=self.atoms,
+            if self.grid_mode is None:
+                self.grid_mode = 'round_cube'
+            grid, faces, site_dict = get_shrinkwrap_particle_ads_sites(
+                particle_atoms=atoms,
                 precision=self.precision,
                 touch_sphere_size=self.touch_sphere_size,
-                grid_mode = 'round_cube',
+                grid_mode = self.grid_mode,
                 return_geometry = True
             )
-            self.site_df = pd.DataFrame(self.site_dict)
-            self.sort_site_df()
 
-        self.surf_inds = list(set([i for t in list(self.site_df.topology.values) for i in t]))
-
+        return grid, faces, site_dict
 
     def sort_site_df(self, by: str = "xyz"):
         """
