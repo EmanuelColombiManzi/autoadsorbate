@@ -298,7 +298,7 @@ def get_base_grid_particle(
     else:
         raise ValueError('grid_mode supported: fibonacci, grid; alternatively provide your own geometry')
     
-    return center, grid
+    return center, round_cube_geometry, grid
 
 def get_shrinkwrap_particle_ads_sites(
     particle_atoms: Atoms,
@@ -322,7 +322,7 @@ def get_shrinkwrap_particle_ads_sites(
     """
     touch_buffer = 0.2
      
-    center, grid = get_base_grid_particle(particle_atoms,grid_mode, precision, touch_sphere_size)
+    center, round_cube_geometry, grid = get_base_grid_particle(particle_atoms,grid_mode, precision, touch_sphere_size)
 
     shrinkwrap = move_sphere_points_toward_center(
         sphere_points = grid,
