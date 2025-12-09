@@ -271,6 +271,35 @@ def calculate_sites(inds, particle_atoms, shrinkwrap, threshold=2.7):
     
     return site_dict
 
+def get_base_grid_particle(
+        particle_atoms: Atoms,
+        grid_mode: Union[Literal['fibonacci', 'grid'], list],
+        precision: float = 1.,
+        touch_sphere_size: float = 3.,
+    ):
+
+    center = np.mean(particle_atoms.positions, axis=0)
+    
+    diffs = particle_atoms.positions - center
+    dists = np.linalg.norm(diffs, axis=1)
+    index = np.argmax(dists)
+    particle_radius = dists[index]
+    
+    grid_radius = particle_radius + touch_sphere_size + 0.5 # 0.5 is safety buffer
+    
+    if isinstance(grid_mode, list):
+        round_cube_geometry = grid_mode
+        grid = round_cube_geometry[0]
+    elif grid_mode == 'fibonacci':
+        grid = fibonacci_sphere(center=center, radius=grid_radius, point_distance=precision)[0]
+    elif grid_mode == 'round_cube':
+        round_cube_geometry = grid_round_cube(center=center, radius=grid_radius, d_min=precision)
+        grid = round_cube_geometry[0]
+    else:
+        raise ValueError('grid_mode supported: fibonacci, grid; alternatively provide your own geometry')
+    
+    return center, grid
+
 def get_shrinkwrap_particle_ads_sites(
     particle_atoms: Atoms,
     grid_mode: Union[Literal['fibonacci', 'grid'], list],
@@ -293,25 +322,7 @@ def get_shrinkwrap_particle_ads_sites(
     """
     touch_buffer = 0.2
      
-    center = np.mean(particle_atoms.positions, axis=0)
-    
-    diffs = particle_atoms.positions - center
-    dists = np.linalg.norm(diffs, axis=1)
-    index = np.argmax(dists)
-    particle_radius = dists[index]
-    
-    grid_radius = particle_radius + touch_sphere_size + 0.5 # 0.5 is safety buffer
-    
-    if isinstance(grid_mode, list):
-        round_cube_geometry = grid_mode
-        grid = round_cube_geometry[0]
-    elif grid_mode == 'fibonacci':
-        grid = fibonacci_sphere(center=center, radius=grid_radius, point_distance=precision)[0]
-    elif grid_mode == 'round_cube':
-        round_cube_geometry = grid_round_cube(center=center, radius=grid_radius, d_min=precision)
-        grid = round_cube_geometry[0]
-    else:
-        raise ValueError('grid_mode supported: fibonacci, grid; alternatively provide your own geometry')
+    center, grid = get_base_grid_particle(particle_atoms,grid_mode, precision, touch_sphere_size)
 
     shrinkwrap = move_sphere_points_toward_center(
         sphere_points = grid,
