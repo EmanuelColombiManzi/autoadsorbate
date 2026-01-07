@@ -125,7 +125,7 @@ def get_shrinkwrap_ads_sites(
         atoms_copy = atoms.copy()
 
         for index in target:
-            atoms_copy.append(Atom("X", atoms_copy[index].position + [0, 0, 0]))
+            atoms_copy += Atoms(["X"], [atoms_copy[index].position + [0, 0, 0]])
 
         extended_atoms = atoms_copy.copy() * [2, 2, 1]
         extended_grid = grid.copy() * [2, 2, 1]
@@ -1322,11 +1322,17 @@ def _get_starting_grid(atoms, precision: float, marker: str = "He"):
     y_coords = np.arange(y_start, y_end, precision)
     z_coord = max(a.position[2] for a in atoms) + 3.5
 
-    # Create grid vertices
-    vertices = [Atom(marker, [x, y, z_coord]) for x, y in product(x_coords, y_coords)]
+    # # Create grid vertices
+    # vertices = [Atom(marker, [x, y, z_coord]) for x, y in product(x_coords, y_coords)]
+    # grid = get_empty_atoms(atoms)
+    # for v in vertices:
+    #     grid.append(v)
     grid = get_empty_atoms(atoms)
-    for v in vertices:
-        grid.append(v)
+    positions = [(x, y, z_coord) for x, y in product(x_coords, y_coords)]
+    grid += Atoms(
+        [marker for _ in positions],
+        positions
+    )
 
     # Map vertices to 2D grid indices for face creation
     nx, ny = len(x_coords), len(y_coords)
@@ -1459,7 +1465,7 @@ def get_AFM_cartoon(atoms: Atoms, precision: float = 1, show_figure=False) -> No
 
     if show_figure:
         import matplotlib.pyplot as plt
-        import sns
+        import seaborn as sns
 
         sns.heatmap(df)
         plt.axis("scaled")
