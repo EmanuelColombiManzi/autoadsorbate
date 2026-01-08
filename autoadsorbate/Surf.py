@@ -311,7 +311,8 @@ def get_shrinkwrap_grid(
         slab = slab[raster_surf_index]
 
     starting_grid, faces = _get_starting_grid(slab, precision=precision)
-    grid_positions = starting_grid.positions
+    # grid_positions = starting_grid.positions
+    grid_positions = starting_grid.arrays['wrapped_positions']
     large_slab = get_large_atoms(slab)
     slab_positions = large_slab.positions
 
@@ -328,13 +329,17 @@ def get_shrinkwrap_grid(
             grid_positions[:, 2] <= 0
         ).all():
             break
+    new_grid_positions = starting_grid.positions
+    new_grid_positions[:,2] = grid_positions[:,2]
 
     grid = Atoms(
         [marker for _ in grid_positions],
-        grid_positions,
+        new_grid_positions,
         pbc=[True, True, True],
         cell=slab.cell,
     )
+    grid.arrays['wrapped_positions'] = grid_positions
+
     grid = grid[[atom.index for atom in grid if atom.position[2] > 0]]
 
     return grid, faces
@@ -356,7 +361,8 @@ def shrinkwrap_surface(
     grid_shrinkwrapped, _ = get_shrinkwrap_grid(
         slab, precision, touch_sphere_size=touch_sphere_size - 0.2
     )
-    grid_positions = grid_shrinkwrapped.positions
+    grid_positions = grid_shrinkwrapped.arrays['wrapped_positions']
+    # grid_positions = grid_shrinkwrapped.positions
     slab_positions = slab.positions
 
     distances_to_grid = cdist(slab_positions, grid_positions).min(axis=1)
@@ -1333,6 +1339,11 @@ def _get_starting_grid(atoms, precision: float, marker: str = "He"):
         [marker for _ in positions],
         positions
     )
+
+    grid.cell = atoms.cell
+    grid_copy = grid.copy()
+    grid_copy.wrap()
+    grid.arrays['wrapped_positions'] = grid_copy.positions
 
     # Map vertices to 2D grid indices for face creation
     nx, ny = len(x_coords), len(y_coords)
