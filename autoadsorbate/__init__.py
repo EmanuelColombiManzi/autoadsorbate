@@ -1,8 +1,8 @@
 """Top-level package for autoadsorbate."""
 
 __author__ = """Fakoe Edvin"""
-__email__ = "edvin.fako@basf.com"
-__version__ = "0.2.0"
+__email__ = "edvinfako@gmail.com"
+__version__ = "0.2.5"
 
 from autoadsorbate.autoadsorbate import Fragment, Surface
 from autoadsorbate.Smile import get_marked_smiles
