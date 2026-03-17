@@ -4,6 +4,7 @@ import ase
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from typing import Union
 from ase import Atom, Atoms
 from ase.build.tools import sort as sort_atoms
 from ase.constraints import FixAtoms
@@ -36,7 +37,7 @@ def get_connectivity(atoms: ase.Atoms, mult:float = 1.0) -> np.ndarray:
 
         return nl.get_connectivity_matrix(sparse=False)
 
-def evaluate_binding(atoms:ase.Atoms, mol_indices:None|list[int] = None, mult:float=1.0) -> dict:
+def evaluate_binding(atoms:ase.Atoms, mol_indices:Union[None,list[int]] = None, mult:float=1.0) -> dict:
     """Evaluate the binding of a molecule to a surface by analyzing the connectivity and distances.
     Parameters:
         atoms (ase.Atoms): The ASE Atoms object.
