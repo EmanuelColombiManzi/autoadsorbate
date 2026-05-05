@@ -632,7 +632,7 @@ class Surface:
 
         Parameters:
         fragment (object): An object containing the fragment to be attached.
-        site_index (str or int): The index of the site to be populated. Default is 'all'.
+        site_index (str or int or list[int]): The index of the site to be populated. Default is 'all'.
         sample_rotation (bool): Whether to sample different rotations of the fragment. Default is True.
         mode (str): The mode of operation. Can be 'heuristic' or 'all'. Default is 'heuristic'.
         conformers_per_site_cap (int or None): The maximum number of conformers per site. Default None mean the maximum number of conformers.
@@ -649,6 +649,11 @@ class Surface:
 
         all_sites = {}
         site_df = self.site_df
+	
+        if isinstance(site_index, int):
+            site_df = site_df.loc[[site_index]]
+        elif isinstance(site_index, list):
+            site_df = site_df.loc[site_index]
 
         if mode.lower() == "all":
             sites = [site_df.loc[i].to_dict() for i in site_df.index.values]
