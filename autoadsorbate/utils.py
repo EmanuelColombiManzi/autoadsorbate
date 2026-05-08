@@ -39,7 +39,7 @@ def get_connectivity(atoms: ase.Atoms, mult:float = 1.335) -> np.ndarray:
 
         return nl.get_connectivity_matrix(sparse=False)
 
-def evaluate_binding(atoms:ase.Atoms, mol_indices:Union[None,list[int]] = None, mult:float=1.0) -> dict:
+def evaluate_binding(atoms:ase.Atoms, mol_indices:Union[None,list[int]] = None, mult:float=1.335) -> dict:
     """Evaluate the binding of a molecule to a surface by analyzing the connectivity and distances.
     Parameters:
         atoms (ase.Atoms): The ASE Atoms object.
