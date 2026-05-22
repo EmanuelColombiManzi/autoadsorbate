@@ -690,7 +690,10 @@ class Surface:
                     ca.rotate(a, "z")
                     conformers.append(ca)
         else:
-            conformers = [c.copy() for c in fragment.conformers]
+            conformers = [
+                fragment.get_conformer(i)
+                for i, _ in enumerate(fragment.conformers)
+            ]
 
         out_trj = []
 
